@@ -1,0 +1,151 @@
+/* ============================================================
+   layout.css — Structure générale de la page
+   ============================================================ */
+
+/* Header bleu en haut */
+.header {
+    background-color: #1a56a0;
+    color: #fff;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header__inner {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    height: 100%;
+    padding: 0 1.5rem;
+}
+
+.header__logo {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.header__search {
+    display: flex;
+    flex: 1;
+    max-width: 480px;
+    margin: 0 auto;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 2px solid #fff;
+}
+
+.header__search-input {
+    flex: 1;
+    border: none;
+    padding: 0 1rem;
+    font-size: 0.875rem;
+    outline: none;
+    color: #333;
+}
+
+.header__search-btn {
+    background-color: #2ea84e;
+    color: #fff;
+    border: none;
+    padding: 0 1.25rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.header__search-btn:hover {
+    background-color: #27943f;
+}
+
+.header__actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.header__icon-btn {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    color: #fff;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.header__icon-btn--notif {
+    background-color: #e53e3e;
+}
+
+/* Layout principal : sidebar | contenu | filtres */
+.page-layout {
+    display: grid;
+    grid-template-columns: 200px 1fr 240px;
+    min-height: calc(100vh - 56px);
+    background-color: #f0f2f5;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+    background-color: #fff;
+    border-right: 1px solid var(--color-border);
+    padding: 1rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sidebar__lien {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.65rem 1.25rem;
+    text-decoration: none;
+    color: var(--color-text);
+    font-size: 0.9rem;
+    transition: background-color 0.15s;
+}
+
+.sidebar__lien:hover {
+    background-color: #f0f4ff;
+    text-decoration: none;
+}
+
+.sidebar__lien--actif {
+    background-color: #e8f0fe;
+    color: #1a56a0;
+    font-weight: 600;
+    border-left: 3px solid #1a56a0;
+}
+
+.sidebar__icone {
+    font-size: 1.1rem;
+    width: 22px;
+    text-align: center;
+}
+
+.sidebar__badge-actif {
+    font-size: 0.75rem;
+    color: #1a56a0;
+    margin-left: auto;
+}
+
+/* ── Contenu principal ── */
+.contenu-principal {
+    padding: 1.5rem;
+}
+
+.contenu-principal__titre {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 1.25rem;
+}

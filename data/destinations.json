@@ -1,0 +1,50 @@
+[
+    {
+        "id": 1,
+        "nom": "Bali",
+        "pays": "Indonésie",
+        "prix": 736,
+        "categorie": "plage",
+        "image": ""
+    },
+    {
+        "id": 2,
+        "nom": "Interlaken",
+        "pays": "Suisse",
+        "prix": 1249,
+        "categorie": "montagne",
+        "image": ""
+    },
+    {
+        "id": 3,
+        "nom": "Paris",
+        "pays": "France",
+        "prix": 299,
+        "categorie": "culture",
+        "image": ""
+    },
+    {
+        "id": 4,
+        "nom": "Tokyo",
+        "pays": "Japon",
+        "prix": 899,
+        "categorie": "culture",
+        "image": ""
+    },
+    {
+        "id": 5,
+        "nom": "Marrakech",
+        "pays": "Maroc",
+        "prix": 249,
+        "categorie": "culture",
+        "image": ""
+    },
+    {
+        "id": 6,
+        "nom": "Barcelone",
+        "pays": "Espagne",
+        "prix": 399,
+        "categorie": "plage",
+        "image": ""
+    }
+]
