@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoyageVista — Explorer les destinations</title>
+
+    <link rel="stylesheet" href="./frontend/css/global.css">
+    <link rel="stylesheet" href="./frontend/css/layout.css">
+    <link rel="stylesheet" href="./frontend/css/destinations.css">
+
+    <!-- React + Babel CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+
+        // ── Composant : carte destination ───────────────────
+        function DestinationCard({ destination, estSelectionne, onSelectionner }) {
+            return (
+                <div
+                    className={`destination-card ${estSelectionne ? 'destination-card--active' : ''}`}
+                    onClick={() => onSelectionner(destination.id)}
+                >
+                    <div className="destination-card__image">
+                        <span>{destination.nom.toUpperCase()}</span>
+                    </div>
+                    <div className="destination-card__body">
+                        <h3 className="destination-card__titre">
+                            {destination.nom}, {destination.pays}
+                        </h3>
+                        <p className="destination-card__prix">
+                            Dès {destination.prix}€
+                        </p>
+                        {estSelectionne && (
+                            <button className="destination-card__btn">
+                                Organiser →
+                            </button>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // ── Composant : panneau de filtres ──────────────────
+        function FiltresPanel({ budgetMax, onBudgetChange, categories, onCategorieChange }) {
+            return (
+                <aside className="filtres-panel">
+                    <h2 className="filtres-panel__titre">
+                        ⊞ Filtrer les offres
+                    </h2>
+
+                    <div className="filtres-panel__section">
+                        <label className="filtres-panel__label">Budget Maximum</label>
+                        <input
+                            type="range"
+                            min="100"
+                            max="5000"
+                            step="50"
+                            value={budgetMax}
+                            onChange={e => onBudgetChange(Number(e.target.value))}
+                            className="filtres-panel__slider"
+                        />
+                        <p className="filtres-panel__budget-valeur">Max : {budgetMax} €</p>
+                    </div>
+
+                    <div className="filtres-panel__section">
+                        <label className="filtres-panel__label">Catégorie</label>
+                        {[
+                            { valeur: 'plage',    libelle: 'Plages / Détente' },
+                            { valeur: 'montagne', libelle: 'Montagne / Aventure' },
+                            { valeur: 'culture',  libelle: 'Culture / Ville' },
+                        ].map(cat => (
+                            <label key={cat.valeur} className="filtres-panel__checkbox-label">
+                                <input
+                                    type="checkbox"
+                                    checked={categories.includes(cat.valeur)}
+                                    onChange={() => onCategorieChange(cat.valeur)}
+                                />
+                                {cat.libelle}
+                            </label>
+                        ))}
+                    </div>
+                </aside>
+            );
+        }
+
+        // ── Composant : sidebar navigation ──────────────────
+        function Sidebar({ pageActive }) {
+            const liens = [
+                { id: 'explorer',     libelle: 'Explorer',       icone: '🕐' },
+                { id: 'transports',   libelle: 'Transports',     icone: '✈' },
+                { id: 'hebergements', libelle: 'Hébergements',   icone: '🏨' },
+                { id: 'activites',    libelle: 'Activités',      icone: '🎭' },
+                { id: 'itineraire',   libelle: 'Mon Itinéraire', icone: '🛒' },
+            ];
+
+            return (
+                <nav className="sidebar">
+                    {liens.map(lien => (
+                        <a
+                            key={lien.id}
+                            href={`#/${lien.id}`}
+                            className={`sidebar__lien ${pageActive === lien.id ? 'sidebar__lien--actif' : ''}`}
+                        >
+                            <span className="sidebar__icone">{lien.icone}</span>
+                            {lien.libelle}
+                            {pageActive === lien.id && <span className="sidebar__badge-actif">(Actif)</span>}
+                        </a>
+                    ))}
+                </nav>
+            );
+        }
+
+        // ── Composant : header ───────────────────────────────
+        function Header() {
+            return (
+                <header className="header">
+                    <div className="header__inner">
+                        <a href="#/" className="header__logo">VoyageVista</a>
+
+                        <div className="header__search">
+                            <input
+                                type="text"
+                                className="header__search-input"
+                                placeholder="Destination | Dates de séjour | Voyageurs"
+                            />
+                            <button className="header__search-btn">Go</button>
+                        </div>
+
+                        <div className="header__actions">
+                            <button className="header__icon-btn" title="Mon compte">👤</button>
+                            <button className="header__icon-btn header__icon-btn--notif" title="Notifications">🔔</button>
+                        </div>
+                    </div>
+                </header>
+            );
+        }
+
+        // ── Page principale ──────────────────────────────────
+        function App() {
+            const [destinations, setDestinations] = React.useState([]);
+            const [selectionne, setSelectionne]   = React.useState(null);
+            const [budgetMax, setBudgetMax]        = React.useState(2500);
+            const [categories, setCategories]      = React.useState([]);
+
+            // Chargement des destinations depuis la base de données (via PHP)
+            React.useEffect(() => {
+                fetch('./api/destinations/list.php')
+                    .then(res => res.json())
+                    .then(data => setDestinations(data))
+                    .catch(err => console.error('Erreur chargement destinations :', err));
+            }, []);
+
+            // Filtrage
+            const destinationsFiltrees = destinations.filter(d => {
+                const okBudget    = d.prix <= budgetMax;
+                const okCategorie = categories.length === 0 || categories.includes(d.categorie);
+                return okBudget && okCategorie;
+            });
+
+            function toggleCategorie(valeur) {
+                setCategories(prev =>
+                    prev.includes(valeur)
+                        ? prev.filter(c => c !== valeur)
+                        : [...prev, valeur]
+                );
+            }
+
+            return (
+                <div className="app">
+                    <Header />
+
+                    <div className="page-layout">
+                        <Sidebar pageActive="explorer" />
+
+                        <main className="contenu-principal">
+                            <h1 className="contenu-principal__titre">Destinations Populaires</h1>
+
+                            {destinationsFiltrees.length === 0 ? (
+                                <p style={{ color: 'var(--color-text-light)' }}>
+                                    Aucune destination ne correspond à vos filtres.
+                                </p>
+                            ) : (
+                                <div className="grille-destinations">
+                                    {destinationsFiltrees.map(d => (
+                                        <DestinationCard
+                                            key={d.id}
+                                            destination={d}
+                                            estSelectionne={selectionne === d.id}
+                                            onSelectionner={id => setSelectionne(prev => prev === id ? null : id)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </main>
+
+                        <FiltresPanel
+                            budgetMax={budgetMax}
+                            onBudgetChange={setBudgetMax}
+                            categories={categories}
+                            onCategorieChange={toggleCategorie}
+                        />
+                    </div>
+                </div>
+            );
+        }
+
+        // Montage React
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+    </script>
+</body>
+</html>
