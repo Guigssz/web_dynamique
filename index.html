@@ -3,13 +3,12 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VoyageVista — Explorer les destinations</title>
+    <title>VoyageVista — Système Complet</title>
 
     <link rel="stylesheet" href="./frontend/css/global.css">
     <link rel="stylesheet" href="./frontend/css/layout.css">
     <link rel="stylesheet" href="./frontend/css/destinations.css">
 
-    <!-- React + Babel CDN -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -19,200 +18,695 @@
 
     <script type="text/babel">
 
-        // ── Composant : carte destination ───────────────────
-        function DestinationCard({ destination, estSelectionne, onSelectionner }) {
+        // ── 1. CONTEXTE D'AUTHENTIFICATION RÉEL (MySQLi Sessions) ────────────
+        const AuthContext = React.createContext(null);
+
+        function AuthProvider({ children }) {
+            const [user, setUser] = React.useState(null);
+            const [chargement, setChargement] = React.useState(true);
+
+            React.useEffect(() => {
+                fetch('./api/auth/me.php', { credentials: 'same-origin' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.logged_in && data.user) {
+                            setUser(data.user);
+                        }
+                        setChargement(false);
+                    })
+                    .catch(() => setChargement(false));
+            }, []);
+
+            const login = (userData) => {
+                setUser(userData);
+            };
+
+            const logout = () => {
+                fetch('./api/auth/logout.php', { credentials: 'same-origin' })
+                    .then(res => res.json())
+                    .then(() => {
+                        setUser(null);
+                        window.location.hash = '#/';
+                    })
+                    .catch(err => console.error('Erreur déconnexion :', err));
+            };
+
+            if (chargement) {
+                return (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'sans-serif', background: '#f4f7f6', color: 'var(--color-primary)' }}>
+                        <h2>Chargement de VoyageVista...</h2>
+                    </div>
+                );
+            }
+
             return (
-                <div
-                    className={`destination-card ${estSelectionne ? 'destination-card--active' : ''}`}
-                    onClick={() => onSelectionner(destination.id)}
-                >
-                    <div className="destination-card__image">
-                        <span>{destination.nom.toUpperCase()}</span>
-                    </div>
-                    <div className="destination-card__body">
-                        <h3 className="destination-card__titre">
-                            {destination.nom}, {destination.pays}
-                        </h3>
-                        <p className="destination-card__prix">
-                            Dès {destination.prix}€
-                        </p>
-                        {estSelectionne && (
-                            <button className="destination-card__btn">
-                                Organiser →
-                            </button>
-                        )}
-                    </div>
-                </div>
+                <AuthContext.Provider value={{ user, login, logout }}>
+                    {children}
+                </AuthContext.Provider>
             );
         }
 
-        // ── Composant : panneau de filtres ──────────────────
-        function FiltresPanel({ budgetMax, onBudgetChange, categories, onCategorieChange }) {
+        // ── 2. COMPOSANTS DE MISES EN PAGE (NAVBAR & SIDEBAR) ────────────────
+        function Navbar() {
+            const { user, logout } = React.useContext(AuthContext);
             return (
-                <aside className="filtres-panel">
-                    <h2 className="filtres-panel__titre">
-                        ⊞ Filtrer les offres
-                    </h2>
-
-                    <div className="filtres-panel__section">
-                        <label className="filtres-panel__label">Budget Maximum</label>
-                        <input
-                            type="range"
-                            min="100"
-                            max="5000"
-                            step="50"
-                            value={budgetMax}
-                            onChange={e => onBudgetChange(Number(e.target.value))}
-                            className="filtres-panel__slider"
-                        />
-                        <p className="filtres-panel__budget-valeur">Max : {budgetMax} €</p>
-                    </div>
-
-                    <div className="filtres-panel__section">
-                        <label className="filtres-panel__label">Catégorie</label>
-                        {[
-                            { valeur: 'plage',    libelle: 'Plages / Détente' },
-                            { valeur: 'montagne', libelle: 'Montagne / Aventure' },
-                            { valeur: 'culture',  libelle: 'Culture / Ville' },
-                        ].map(cat => (
-                            <label key={cat.valeur} className="filtres-panel__checkbox-label">
-                                <input
-                                    type="checkbox"
-                                    checked={categories.includes(cat.valeur)}
-                                    onChange={() => onCategorieChange(cat.valeur)}
-                                />
-                                {cat.libelle}
-                            </label>
-                        ))}
-                    </div>
-                </aside>
-            );
-        }
-
-        // ── Composant : sidebar navigation ──────────────────
-        function Sidebar({ pageActive }) {
-            const liens = [
-                { id: 'explorer',     libelle: 'Explorer',       icone: '🕐' },
-                { id: 'transports',   libelle: 'Transports',     icone: '✈' },
-                { id: 'hebergements', libelle: 'Hébergements',   icone: '🏨' },
-                { id: 'activites',    libelle: 'Activités',      icone: '🎭' },
-                { id: 'itineraire',   libelle: 'Mon Itinéraire', icone: '🛒' },
-            ];
-
-            return (
-                <nav className="sidebar">
-                    {liens.map(lien => (
-                        <a
-                            key={lien.id}
-                            href={`#/${lien.id}`}
-                            className={`sidebar__lien ${pageActive === lien.id ? 'sidebar__lien--actif' : ''}`}
-                        >
-                            <span className="sidebar__icone">{lien.icone}</span>
-                            {lien.libelle}
-                            {pageActive === lien.id && <span className="sidebar__badge-actif">(Actif)</span>}
-                        </a>
-                    ))}
-                </nav>
-            );
-        }
-
-        // ── Composant : header ───────────────────────────────
-        function Header() {
-            return (
-                <header className="header">
+                <header className="header" style={{position: 'sticky', top: 0, zIndex: 100}}>
                     <div className="header__inner">
                         <a href="#/" className="header__logo">VoyageVista</a>
-
                         <div className="header__search">
-                            <input
-                                type="text"
-                                className="header__search-input"
-                                placeholder="Destination | Dates de séjour | Voyageurs"
-                            />
+                            <input type="text" className="header__search-input" placeholder="Destination | Dates de séjour | Voyageurs" />
                             <button className="header__search-btn">Go</button>
                         </div>
-
-                        <div className="header__actions">
-                            <button className="header__icon-btn" title="Mon compte">👤</button>
-                            <button className="header__icon-btn header__icon-btn--notif" title="Notifications">🔔</button>
+                        <div className="header__actions" style={{display: 'flex', gap: '15px', alignItems: 'center'}}>
+                            {user ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <span style={{fontWeight: 'bold', color: '#fff'}}>👤 {user.nom}</span>
+                                    <button 
+                                        onClick={logout} 
+                                        style={{ background: 'var(--color-danger)', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}
+                                    >
+                                        Déconnexion
+                                    </button>
+                                </div>
+                            ) : (
+                                <span style={{color: '#fff', fontSize: '0.85rem', fontWeight: 'bold'}}>🔒 Mode Visiteur (Identifiez-vous à droite)</span>
+                            )}
                         </div>
                     </div>
                 </header>
             );
         }
 
-        // ── Page principale ──────────────────────────────────
-        function App() {
+        function Sidebar({ pageActive }) {
+            const liens = [
+                { id: 'explorer',     libelle: 'Explorer',       icone: '🌍' },
+                { id: 'transports',   libelle: 'Transports',     icone: '✈' },
+                { id: 'hebergements', libelle: 'Hébergements',   icone: '🏨' },
+                { id: 'activites',    libelle: 'Activités',      icone: '🎭' },
+                { id: 'itineraire',   libelle: 'Mon Itinéraire', icone: '🛒' },
+            ];
+            return (
+                <nav className="sidebar">
+                    {liens.map(lien => (
+                        <a key={lien.id} href={`#/${lien.id}`} className={`sidebar__lien ${pageActive === lien.id ? 'sidebar__lien--actif' : ''}`}>
+                            <span className="sidebar__icone">{lien.icone}</span> {lien.libelle}
+                        </a>
+                    ))}
+                </nav>
+            );
+        }
+
+        // ── 3. PANNEAU LATÉRAL D'AUTHENTIFICATION (CONNEXION/INSCRIPTION SUR LE CÔTÉ) ──
+        function ConnexionSidePanel() {
+            const { login } = React.useContext(AuthContext);
+            const [mode, setMode] = React.useState('login'); // 'login' ou 'register'
+            const [nom, setNom] = React.useState('');
+            const [email, setEmail] = React.useState('');
+            const [password, setPassword] = React.useState('');
+            const [erreur, setErreur] = React.useState('');
+            const [succesMsg, setSuccesMsg] = React.useState('');
+
+            const gérerLogin = (e) => {
+                e.preventDefault();
+                setErreur('');
+                fetch('./api/auth/login.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ email, password })
+                })
+                .then(res => {
+                    if (!res.ok) return res.json().then(err => { throw new Error(err.error || "Erreur de connexion."); });
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.success && data.user) {
+                        login(data.user);
+                    }
+                })
+                .catch(err => setErreur(err.message));
+            };
+
+            const gérerRegister = (e) => {
+                e.preventDefault();
+                setErreur('');
+                fetch('./api/auth/register.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ nom, email, password })
+                })
+                .then(res => {
+                    if (!res.ok) return res.json().then(err => { throw new Error(err.error || "Erreur d'inscription."); });
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        setSuccesMsg("✓ Compte créé !");
+                        setTimeout(() => {
+                            setSuccesMsg('');
+                            setMode('login');
+                        }, 1000);
+                    }
+                })
+                .catch(err => setErreur(err.message));
+            };
+
+            return (
+                <aside className="filtres-panel" style={{ padding: '20px' }}>
+                    <h2 className="filtres-panel__titre">🔑 {mode === 'login' ? 'Espace Connexion' : 'Inscription'}</h2>
+                    
+                    {erreur && <div style={{ background: '#f8d7da', color: '#721c24', padding: '8px', borderRadius: '4px', marginBottom: '12px', fontSize: '0.8rem' }}>{erreur}</div>}
+                    {succesMsg && <div style={{ background: '#d4edda', color: '#155724', padding: '8px', borderRadius: '4px', marginBottom: '12px', fontSize: '0.8rem' }}>{succesMsg}</div>}
+
+                    {mode === 'login' ? (
+                        <form onSubmit={gérerLogin} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '3px' }}>Email</label>
+                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '3px' }}>Mot de passe</label>
+                                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} />
+                            </div>
+                            <button type="submit" className="destination-card__btn" style={{ width: '100%', padding: '10px', marginTop: '5px' }}>Se connecter</button>
+                            <p style={{ fontSize: '0.75rem', textAlign: 'center', marginTop: '8px' }}>
+                                Pas de compte ? <span onClick={() => { setMode('register'); setErreur(''); }} style={{ color: 'var(--color-primary)', fontWeight: 'bold', cursor: 'pointer' }}>Créer un compte</span>
+                            </p>
+                        </form>
+                    ) : (
+                        <form onSubmit={gérerRegister} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '3px' }}>Nom complet</label>
+                                <input type="text" value={nom} onChange={e => setNom(e.target.value)} required style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '3px' }}>Email</label>
+                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '3px' }}>Mot de passe</label>
+                                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} />
+                            </div>
+                            <button type="submit" className="destination-card__btn" style={{ width: '100%', padding: '10px', marginTop: '5px' }}>S'inscrire</button>
+                            <p style={{ fontSize: '0.75rem', textAlign: 'center', marginTop: '8px' }}>
+                                Déjà inscrit ? <span onClick={() => { setMode('login'); setErreur(''); }} style={{ color: 'var(--color-primary)', fontWeight: 'bold', cursor: 'pointer' }}>Se connecter</span>
+                            </p>
+                        </form>
+                    )}
+                </aside>
+            );
+        }
+
+        // ── 4. PANNEAU DE FILTRES COMMUN ───────────────────────────────────────
+        function FiltresPanel({ budgetMax, onBudgetChange, categories, onCategorieChange, afficherCategories = true }) {
+            return (
+                <aside className="filtres-panel">
+                    <h2 className="filtres-panel__titre">⊞ Filtrer les offres</h2>
+                    <div className="filtres-panel__section">
+                        <label className="filtres-panel__label">Budget Maximum</label>
+                        <input type="range" min="50" max="5000" step="50" value={budgetMax} onChange={e => onBudgetChange(Number(e.target.value))} className="filtres-panel__slider" />
+                        <p className="filtres-panel__budget-valeur">Max : {budgetMax} €</p>
+                    </div>
+                    {afficherCategories && (
+                        <div className="filtres-panel__section">
+                            <label className="filtres-panel__label">Catégorie</label>
+                            {[
+                                { valeur: 'plage',    libelle: 'Plages / Détente' },
+                                { valeur: 'montagne', libelle: 'Montagne / Aventure' },
+                                { valeur: 'culture',  libelle: 'Culture / Ville' },
+                            ].map(cat => (
+                                <label key={cat.valeur} className="filtres-panel__checkbox-label">
+                                    <input type="checkbox" checked={categories.includes(cat.valeur)} onChange={() => onCategorieChange(cat.valeur)} />
+                                    {cat.libelle}
+                                </label>
+                            ))}
+                        </div>
+                    )}
+                </aside>
+            );
+        }
+
+        const normaliserTexte = (str) => {
+            return str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim() : "";
+        };
+
+        // --- PAGE : EXPLORER (DESTINATIONS) ---
+        function ExplorerPage({ onAjouter, destinationActive }) {
+            const { user } = React.useContext(AuthContext);
             const [destinations, setDestinations] = React.useState([]);
             const [selectionne, setSelectionne]   = React.useState(null);
             const [budgetMax, setBudgetMax]        = React.useState(2500);
             const [categories, setCategories]      = React.useState([]);
 
-            // Chargement des destinations depuis la base de données (via PHP)
             React.useEffect(() => {
-                fetch('./api/destinations/list.php')
+                fetch('./api/destinations/list.php', { credentials: 'same-origin' })
                     .then(res => res.json())
                     .then(data => setDestinations(data))
-                    .catch(err => console.error('Erreur chargement destinations :', err));
+                    .catch(err => console.error('Erreur destinations :', err));
             }, []);
 
-            // Filtrage
-            const destinationsFiltrees = destinations.filter(d => {
-                const okBudget    = d.prix <= budgetMax;
-                const okCategorie = categories.length === 0 || categories.includes(d.categorie);
-                return okBudget && okCategorie;
-            });
-
-            function toggleCategorie(valeur) {
-                setCategories(prev =>
-                    prev.includes(valeur)
-                        ? prev.filter(c => c !== valeur)
-                        : [...prev, valeur]
-                );
-            }
+            const destinationsFiltrees = destinations.filter(d => d.prix <= budgetMax && (categories.length === 0 || categories.includes(d.categorie)));
 
             return (
-                <div className="app">
-                    <Header />
+                <div className="page-layout">
+                    <Sidebar pageActive="explorer" />
+                    <main className="contenu-principal">
+                        <h1 className="contenu-principal__titre">Destinations Populaires</h1>
+                        
+                        {destinationActive && (
+                            <div style={{ padding: '12px', background: '#e3f2fd', color: '#0d47a1', borderRadius: '6px', marginBottom: '20px', fontSize: '0.9rem', border: '1px solid #bbdefb' }}>
+                                📍 Étape active : Vous organisez actuellement votre voyage à <strong>{destinationActive.nom}</strong>.
+                            </div>
+                        )}
 
-                    <div className="page-layout">
-                        <Sidebar pageActive="explorer" />
-
-                        <main className="contenu-principal">
-                            <h1 className="contenu-principal__titre">Destinations Populaires</h1>
-
-                            {destinationsFiltrees.length === 0 ? (
-                                <p style={{ color: 'var(--color-text-light)' }}>
-                                    Aucune destination ne correspond à vos filtres.
-                                </p>
-                            ) : (
-                                <div className="grille-destinations">
-                                    {destinationsFiltrees.map(d => (
-                                        <DestinationCard
-                                            key={d.id}
-                                            destination={d}
-                                            estSelectionne={selectionne === d.id}
-                                            onSelectionner={id => setSelectionne(prev => prev === id ? null : id)}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </main>
-
-                        <FiltresPanel
-                            budgetMax={budgetMax}
-                            onBudgetChange={setBudgetMax}
-                            categories={categories}
-                            onCategorieChange={toggleCategorie}
-                        />
-                    </div>
+                        {destinationsFiltrees.length === 0 ? (
+                            <p style={{ color: 'var(--color-text-light)' }}>Aucune destination trouvée.</p>
+                        ) : (
+                            <div className="grille-destinations">
+                                {destinationsFiltrees.map(d => {
+                                    const id = d.id;
+                                    const estSelectionne = selectionne === id;
+                                    return (
+                                        <div key={id} className={`destination-card ${estSelectionne ? 'destination-card--active' : ''}`} onClick={() => setSelectionne(prev => prev === id ? null : id)}>
+                                            <div className="destination-card__image"><span>{d.nom.toUpperCase()}</span></div>
+                                            <div className="destination-card__body">
+                                                <h3 className="destination-card__titre">{d.nom}, {d.pays}</h3>
+                                                <p className="destination-card__prix">Dès {d.prix}€</p>
+                                                {estSelectionne && (
+                                                    <button className="destination-card__btn" onClick={(e) => { e.stopPropagation(); onAjouter({ genre: '🌍 Destination', nom: d.nom, pays: d.pays, prix: d.prix }); }}>
+                                                        Organiser →
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </main>
+                    {user ? (
+                        <FiltresPanel budgetMax={budgetMax} onBudgetChange={setBudgetMax} categories={categories} onCategorieChange={(v) => setCategories(p => p.includes(v) ? p.filter(c => c !== v) : [...p, v])} />
+                    ) : (
+                        <ConnexionSidePanel />
+                    )}
                 </div>
             );
         }
 
-        // Montage React
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+        // --- PAGE : HÉBERGEMENTS ---
+        function HebergementsPage({ onAjouter, destinationActive }) {
+            const { user } = React.useContext(AuthContext);
+            const [hotels, setHotels] = React.useState([]);
+            const [selectionne, setSelectionne] = React.useState(null);
+            const [budgetMax, setBudgetMax] = React.useState(2500);
 
+            React.useEffect(() => {
+                fetch('./api/hebergements/list.php', { credentials: 'same-origin' })
+                    .then(res => res.json())
+                    .then(data => setHotels(data))
+                    .catch(err => console.error('Erreur hébergements :', err));
+            }, []);
+
+            const hotelsFiltres = hotels.filter(h => {
+                const respecteBudget = (h.prix_nuit || h.prix) <= budgetMax;
+                if (!destinationActive) return respecteBudget;
+                
+                const cible = normaliserTexte(destinationActive.nom);
+                return respecteBudget && (
+                    normaliserTexte(h.nom).includes(cible) || 
+                    normaliserTexte(h.adresse).includes(cible) ||
+                    normaliserTexte(h.description).includes(cible)
+                );
+            });
+
+            return (
+                <div className="page-layout">
+                    <Sidebar pageActive="hebergements" />
+                    <main className="contenu-principal">
+                        <h1 className="contenu-principal__titre">Hébergements disponibles</h1>
+                        
+                        {destinationActive ? (
+                            <div style={{ padding: '12px', background: '#e8f5e9', color: '#2e7d32', borderRadius: '6px', marginBottom: '20px', fontSize: '0.9rem', border: '1px solid #c8e6c9' }}>
+                                🏨 Filtrage géographique appliqué pour : <strong>{destinationActive.nom}</strong>
+                            </div>
+                        ) : (
+                            <div style={{ padding: '12px', background: '#fff3e0', color: '#e65100', borderRadius: '6px', marginBottom: '20px', fontSize: '0.9rem', border: '1px solid #ffe0b2' }}>
+                                💡 Conseil : Sélectionnez une destination dans l'onglet <strong>Explorer</strong> pour affiner automatiquement la liste.
+                            </div>
+                        )}
+
+                        {hotelsFiltres.length === 0 ? (
+                            <p style={{ color: 'var(--color-text-light)' }}>Aucun hébergement trouvé.</p>
+                        ) : (
+                            <div className="grille-destinations">
+                                {hotelsFiltres.map(h => {
+                                    const id = h.id;
+                                    const estSelectionne = selectionne === id;
+                                    const prix = h.prix_nuit || h.prix;
+                                    return (
+                                        <div key={id} className={`destination-card ${estSelectionne ? 'destination-card--active' : ''}`} onClick={() => setSelectionne(prev => prev === id ? null : id)}>
+                                            <div className="destination-card__image">
+                                                <span>{(h.type || 'HÔTEL').toUpperCase()}</span>
+                                            </div>
+                                            <div className="destination-card__body">
+                                                <h3 className="destination-card__titre">{h.nom}</h3>
+                                                <p style={{fontSize: '0.8rem', color: 'var(--color-text-light)', marginBottom: '5px'}}>{h.adresse}</p>
+                                                <p style={{fontSize: '0.85rem', color: '#555', marginBottom: '8px', lineHeight: '1.3'}}>{h.description}</p>
+                                                <p className="destination-card__prix">{prix}€ / nuit</p>
+                                                {estSelectionne && (
+                                                    <button className="destination-card__btn" onClick={(e) => { e.stopPropagation(); onAjouter({ genre: '🏨 Hébergement', nom: h.nom, prix: prix, details: h.adresse }); }}>
+                                                        Choisir
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </main>
+                    {user ? (
+                        <FiltresPanel budgetMax={budgetMax} onBudgetChange={setBudgetMax} afficherCategories={false} />
+                    ) : (
+                        <ConnexionSidePanel />
+                    )}
+                </div>
+            );
+        }
+
+        // --- PAGE : TRANSPORTS ---
+        function TransportsPage({ onAjouter, destinationActive }) {
+            const { user } = React.useContext(AuthContext);
+            const [transports, setTransports] = React.useState([]);
+            const [selectionne, setSelectionne] = React.useState(null);
+            const [erreur, setErreur] = React.useState(null);
+            const [budgetMax, setBudgetMax] = React.useState(2500);
+
+            React.useEffect(() => {
+                fetch('./api/transports/list.php', { credentials: 'same-origin' })
+                    .then(res => res.json())
+                    .then(data => { if (data.error) setErreur(data.error); else setTransports(data); })
+                    .catch(err => setErreur(err.message));
+            }, []);
+
+            const formaterDate = (dateStr) => {
+                if (!dateStr) return "Non spécifiée";
+                try {
+                    const t = dateStr.split(/[- :]/);
+                    if (t.length >= 5) return `${t[2]}/${t[1]}/${t[0]} à ${t[3]}:${t[4]}`;
+                    return dateStr;
+                } catch(e) { return dateStr; }
+            };
+
+            const transportsFiltres = transports.filter(t => {
+                const respecteBudget = t.prix <= budgetMax;
+                if (!destinationActive) return respecteBudget;
+                
+                const cible = normaliserTexte(destinationActive.nom);
+                return respecteBudget && (
+                    normaliserTexte(t.arrivee).includes(cible) ||
+                    normaliserTexte(t.nom).includes(cible) ||
+                    normaliserTexte(t.description).includes(cible)
+                );
+            });
+
+            return (
+                <div className="page-layout">
+                    <Sidebar pageActive="transports" />
+                    <main className="contenu-principal">
+                        <h1 className="contenu-principal__titre">Transports disponibles</h1>
+                        
+                        {destinationActive ? (
+                            <div style={{ padding: '12px', background: '#e8f5e9', color: '#2e7d32', borderRadius: '6px', marginBottom: '20px', fontSize: '0.9rem', border: '1px solid #c8e6c9' }}>
+                                ✈️ Transports configurés à destination de : <strong>{destinationActive.nom}</strong>
+                            </div>
+                        ) : (
+                            <div style={{ padding: '12px', background: '#fff3e0', color: '#e65100', borderRadius: '6px', marginBottom: '20px', fontSize: '0.9rem', border: '1px solid #ffe0b2' }}>
+                                💡 Conseil : Sélectionnez une destination dans l'onglet <strong>Explorer</strong> pour cibler vos trajets.
+                            </div>
+                        )}
+
+                        {erreur && <div className="alert alert-error"><strong>Erreur :</strong> {erreur}</div>}
+                        {transportsFiltres.length === 0 && !erreur ? (
+                            <p style={{ color: 'var(--color-text-light)' }}>Aucun transport trouvé.</p>
+                        ) : (
+                            <div className="grille-destinations">
+                                {transportsFiltres.map(t => {
+                                    const id = t.id;
+                                    const estSelectionne = selectionne === id;
+                                    const typeTransport = (t.type || "avion").toUpperCase();
+                                    const icone = typeTransport === "TRAIN" ? "🚅 Train" : typeTransport === "BUS" ? "🚌 Bus" : "✈️ Avion";
+                                    const labelTrajet = `${t.depart || "N/A"} → ${t.arrivee || "N/A"}`;
+
+                                    return (
+                                        <div key={id} className={`destination-card ${estSelectionne ? 'destination-card--active' : ''}`} onClick={() => setSelectionne(prev => prev === id ? null : id)}>
+                                            <div className="destination-card__image"><span>{icone}</span></div>
+                                            <div className="destination-card__body">
+                                                <h3 className="destination-card__titre" style={{ fontSize: '1rem', color: 'var(--color-primary)', marginBottom: '8px' }}>
+                                                    {labelTrajet}
+                                                </h3>
+                                                <p style={{ fontSize: '0.8rem', color: 'var(--color-text-light)', marginBottom: '4px' }}>
+                                                    📅 <strong>Départ :</strong> {formaterDate(t.date_depart)}
+                                                </p>
+                                                <p style={{ fontSize: '0.75rem', color: '#e53e3e', marginBottom: '8px' }}>
+                                                    🔥 Places restantes : {t.places_restantes || 0}
+                                                </p>
+                                                <p className="destination-card__prix">{t.prix}€</p>
+                                                {estSelectionne && (
+                                                    <button className="destination-card__btn" onClick={(e) => { e.stopPropagation(); onAjouter({ genre: '✈️ Transport', nom: `${typeTransport} : ${labelTrajet}`, prix: t.prix, details: `Départ le ${formaterDate(t.date_depart)}` }); }}>
+                                                        Choisir
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </main>
+                    {user ? (
+                        <FiltresPanel budgetMax={budgetMax} onBudgetChange={setBudgetMax} afficherCategories={false} />
+                    ) : (
+                        <ConnexionSidePanel />
+                    )}
+                </div>
+            );
+        }
+
+        // --- PAGE : ACTIVITÉS ---
+        function ActivitesPage({ onAjouter, destinationActive }) {
+            const { user } = React.useContext(AuthContext);
+            const [activites, setActivites] = React.useState([]);
+            const [selectionne, setSelectionne] = React.useState(null);
+            const [erreur, setErreur] = React.useState(null);
+            const [budgetMax, setBudgetMax] = React.useState(2500);
+
+            React.useEffect(() => {
+                fetch('./api/activites/list.php', { credentials: 'same-origin' })
+                    .then(res => res.json())
+                    .then(data => { if (data.error) setErreur(data.error); else setActivites(data); })
+                    .catch(err => setErreur(err.message));
+            }, []);
+
+            const activitesFiltrees = activites.filter(act => {
+                const respecteBudget = Number(act.prix || 0) <= budgetMax;
+                if (!destinationActive) return respecteBudget;
+
+                const cible = normaliserTexte(destinationActive.nom);
+                return respecteBudget && (
+                    normaliserTexte(act.nom).includes(cible) ||
+                    normaliserTexte(act.description).includes(cible)
+                );
+            });
+
+            return (
+                <div className="page-layout">
+                    <Sidebar pageActive="activites" />
+                    <main className="contenu-principal">
+                        <h1 className="contenu-principal__titre">Activités & Excursions</h1>
+                        
+                        {destinationActive ? (
+                            <div style={{ padding: '12px', background: '#e8f5e9', color: '#2e7d32', borderRadius: '6px', marginBottom: '20px', fontSize: '0.9rem', border: '1px solid #c8e6c9' }}>
+                                🎭 Expériences recommandées à : <strong>{destinationActive.nom}</strong>
+                            </div>
+                        ) : (
+                            <div style={{ padding: '12px', background: '#fff3e0', color: '#e65100', borderRadius: '6px', marginBottom: '20px', fontSize: '0.9rem', border: '1px solid #ffe0b2' }}>
+                                💡 Conseil : Sélectionnez une destination dans l'onglet <strong>Explorer</strong> pour afficher les activités associées.
+                            </div>
+                        )}
+                        
+                        {erreur && (
+                            <div style={{ padding: '15px', background: '#f8d7da', color: '#721c24', borderRadius: '4px', marginBottom: '20px' }}>
+                                <strong>Erreur :</strong> {erreur}
+                            </div>
+                        )}
+
+                        {activitesFiltrees.length === 0 && !erreur ? (
+                            <p style={{ color: 'var(--color-text-light)' }}>Aucune activité trouvée pour ce budget.</p>
+                        ) : (
+                            <div className="grille-destinations">
+                                {activitesFiltrees.map(act => {
+                                    const id = act.id;
+                                    const estSelectionne = selectionne === id;
+                                    const titre = act.nom || "Activité sans nom";
+                                    const prix = act.prix || 0;
+                                    const duree = act.duree || "Non spécifiée";
+                                    const places = act.places_restantes ?? act.capacite_max;
+
+                                    return (
+                                        <div key={id} className={`destination-card ${estSelectionne ? 'destination-card--active' : ''}`} onClick={() => setSelectionne(prev => prev === id ? null : id)}>
+                                            <div className="destination-card__image">
+                                                <span>🎭 ACTIVITÉ</span>
+                                            </div>
+                                            <div className="destination-card__body">
+                                                <h3 className="destination-card__titre">{titre}</h3>
+                                                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-light)', marginBottom: '4px' }}>
+                                                    ⏱️ Durée : {duree}
+                                                </p>
+                                                {act.description && (
+                                                    <p style={{ fontSize: '0.8rem', color: '#555', marginBottom: '8px', lineHeight: '1.3' }}>
+                                                        {act.description}
+                                                    </p>
+                                                )}
+                                                <p style={{ fontSize: '0.75rem', color: '#e53e3e', marginBottom: '8px' }}>
+                                                    🔥 Places dispos : {places}
+                                                </p>
+                                                <p className="destination-card__prix">{prix}€</p>
+                                                {estSelectionne && (
+                                                    <button className="destination-card__btn" onClick={(e) => { e.stopPropagation(); onAjouter({ genre: '🎭 Activité', nom: titre, prix: prix, details: `Durée : ${duree}` }); }}>
+                                                        Choisir
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </main>
+                    {user ? (
+                        <FiltresPanel budgetMax={budgetMax} onBudgetChange={setBudgetMax} afficherCategories={false} />
+                    ) : (
+                        <ConnexionSidePanel />
+                    )}
+                </div>
+            );
+        }
+
+        // --- PAGE : MON ITINÉRAIRE (VRAI PANIER RECALCULÉ) ---
+        function ItinerairePage({ panier, onSupprimer }) {
+            const total = panier.reduce((sum, item) => sum + Number(item.prix), 0);
+
+            return (
+                <div className="page-layout">
+                    <Sidebar pageActive="itineraire" />
+                    <main className="contenu-principal">
+                        <h1 className="contenu-principal__titre">🛒 Mon Itinéraire de Voyage</h1>
+                        
+                        {panier.length === 0 ? (
+                            <div style={{ padding: '30px', background: '#fff', borderRadius: '8px', border: '1px solid var(--color-border)', textAlign: 'center' }}>
+                                <p style={{ fontSize: '1.1rem', color: 'var(--color-text-light)' }}>Votre itinéraire est vide pour le moment.</p>
+                                <p style={{ fontSize: '0.9rem', color: '#888', marginTop: '5px' }}>Explorez les sections pour composer votre séjour sur mesure !</p>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                {panier.map((item, index) => (
+                                    <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '15px 20px', borderRadius: '8px', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
+                                        <div>
+                                            <strong style={{ fontSize: '1rem', color: 'var(--color-text)' }}>{item.nom}</strong>
+                                            <span style={{ marginLeft: '10px', fontSize: '0.75rem', color: 'white', background: 'var(--color-primary)', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>
+                                                {item.genre}
+                                            </span>
+                                            {item.details && <p style={{ fontSize: '0.85rem', color: 'var(--color-text-light)', marginTop: '4px' }}>{item.details}</p>}
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                                            <span style={{ fontWeight: '700', color: 'var(--color-success)', fontSize: '1.1rem' }}>{item.prix}€</span>
+                                            <button onClick={() => onSupprimer(index)} style={{ background: 'var(--color-danger)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                                                Supprimer
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                <div style={{ background: '#fff', padding: '20px', borderRadius: '8px', border: '2px solid var(--color-primary)', marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div>
+                                        <h3 style={{ margin: 0, color: 'var(--color-text)' }}>Estimation Totale :</h3>
+                                        <p style={{ margin: '5px 0 0 0', fontSize: '0.85rem', color: 'var(--color-text-light)' }}>{panier.length} prestation(s) sélectionnée(s)</p>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '25px' }}>
+                                        <span style={{ fontSize: '1.8rem', fontWeight: '800', color: 'var(--color-primary)' }}>{total} €</span>
+                                        <button onClick={() => alert(`🚀 Réservation validée avec succès ! Total simulé : ${total}€. Merci d'utiliser VoyageVista !`)} className="destination-card__btn" style={{ margin: 0, padding: '12px 25px', fontSize: '1rem', width: 'auto' }}>
+                                            Valider et Réserver 💳
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                    <aside className="filtres-panel">
+                        <h2 className="filtres-panel__titre">ℹ️ Récapitulatif</h2>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--color-text-light)', lineHeight: '1.4' }}>
+                            Vos choix sont sauvegardés dans votre session de navigation. Ajustez votre programme avant la confirmation finale.
+                        </p>
+                    </aside>
+                </div>
+            );
+        }
+
+        // ── 5. ROUTEUR GLOBAL ET ETAT CENTRALISÉ (PANIER & COHÉRENCE) ─────────
+        function App() {
+            const [hash, setHash] = React.useState(window.location.hash || '#/');
+            const [panier, setPanier] = React.useState([]);
+            const [destinationActive, setDestinationActive] = React.useState(null);
+
+            React.useEffect(() => {
+                const onHashChange = () => setHash(window.location.hash || '#/');
+                window.addEventListener('hashchange', onHashChange);
+                return () => window.removeEventListener('hashchange', onHashChange);
+            }, []);
+
+            const ajouterAuPanier = (element) => {
+                setPanier(prev => [...prev, element]);
+                if (element.genre === '🌍 Destination') {
+                    setDestinationActive(element);
+                }
+                alert(`🛒 Ajouté à l'itinéraire : "${element.nom}" !`);
+            };
+
+            const supprimerDuPanier = (indexASupprimer) => {
+                const itemASupprimer = panier[indexASupprimer];
+                setPanier(prev => prev.filter((_, idx) => idx !== indexASupprimer));
+                if (itemASupprimer.genre === '🌍 Destination') {
+                    setDestinationActive(null);
+                }
+            };
+
+            const renderContent = () => {
+                switch(hash) {
+                    case '#/':
+                    case '#/explorer':     return <ExplorerPage onAjouter={ajouterAuPanier} destinationActive={destinationActive} />;
+                    case '#/hebergements': return <HebergementsPage onAjouter={ajouterAuPanier} destinationActive={destinationActive} />;
+                    case '#/transports':   return <TransportsPage onAjouter={ajouterAuPanier} destinationActive={destinationActive} />;
+                    case '#/activites':    return <ActivitesPage onAjouter={ajouterAuPanier} destinationActive={destinationActive} />;
+                    case '#/itineraire':   return <ItinerairePage panier={panier} onSupprimer={supprimerDuPanier} />;
+                    default: return <div style={{padding:'30px'}}><h2>En construction</h2><p>Ce module arrive bientôt.</p></div>;
+                }
+            };
+
+            return (
+                <div className="app">
+                    <Navbar />
+                    {renderContent()}
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(
+            <AuthProvider>
+                <App />
+            </AuthProvider>
+        );
     </script>
 </body>
 </html>
