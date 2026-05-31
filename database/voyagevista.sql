@@ -245,7 +245,10 @@ INSERT INTO transports (type, depart, arrivee, date_depart, date_arrivee, prix, 
 ('avion', 'Paris CDG',     'Barcelone BCN',  '2026-07-10 08:00:00', '2026-07-10 10:00:00', 89.00,  150, 120),
 ('train', 'Paris Nord',    'Barcelone Sants','2026-07-12 07:00:00', '2026-07-12 13:30:00', 120.00, 300, 250),
 ('avion', 'Paris CDG',     'Marrakech RAK',  '2026-07-15 09:00:00', '2026-07-15 11:30:00', 110.00, 180, 150),
-('bus',   'Barcelone',     'Marrakech',      '2026-07-20 06:00:00', '2026-07-21 10:00:00', 55.00,  50,  35);
+('bus',   'Barcelone',     'Marrakech',      '2026-07-20 06:00:00', '2026-07-21 10:00:00', 55.00,  50,  35),
+('train', 'Paris Lyon',    'Interlaken Ost', '2026-07-22 08:00:00', '2026-07-22 13:00:00', 140.00, 100, 95),
+('avion', 'Londres LHR',   'Paris CDG',      '2026-07-25 14:00:00', '2026-07-25 15:15:00', 75.00,  120, 110),
+('train', 'Bruxelles M.',  'Paris Nord',     '2026-07-26 10:00:00', '2026-07-26 11:22:00', 49.00,  200, 190);
 
 -- Activités
 INSERT INTO activites (destination_id, nom, description, prix, capacite_max, places_restantes, duree) VALUES
