@@ -80,7 +80,7 @@
                         <div className="header__actions" style={{display: 'flex', gap: '15px', alignItems: 'center'}}>
                             {user ? (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <span style={{fontWeight: 'bold', color: '#fff'}}>👤 {user.nom}</span>
+                                    <span style={{fontWeight: 'bold', color: '#fff'}}>👤 {user.prenom || ''} {user.nom}</span>
                                     <button 
                                         onClick={logout} 
                                         style={{ background: 'var(--color-danger)', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}
@@ -116,11 +116,12 @@
             );
         }
 
-        // ── 3. PANNEAU LATÉRAL D'AUTHENTIFICATION (CONNEXION/INSCRIPTION SUR LE CÔTÉ) ──
+        // ── 3. PANNEAU LATÉRAL D'AUTHENTIFICATION ───────────────────────────
         function ConnexionSidePanel() {
             const { login } = React.useContext(AuthContext);
-            const [mode, setMode] = React.useState('login'); // 'login' ou 'register'
+            const [mode, setMode] = React.useState('login'); 
             const [nom, setNom] = React.useState('');
+            const [prenom, setPrenom] = React.useState(''); // Nouveau champ requis
             const [email, setEmail] = React.useState('');
             const [password, setPassword] = React.useState('');
             const [erreur, setErreur] = React.useState('');
@@ -154,7 +155,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'same-origin',
-                    body: JSON.stringify({ nom, email, password })
+                    body: JSON.stringify({ nom, prenom, email, password })
                 })
                 .then(res => {
                     if (!res.ok) return res.json().then(err => { throw new Error(err.error || "Erreur d'inscription."); });
@@ -197,7 +198,11 @@
                     ) : (
                         <form onSubmit={gérerRegister} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '3px' }}>Nom complet</label>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '3px' }}>Prénom</label>
+                                <input type="text" value={prenom} onChange={e => setPrenom(e.target.value)} required style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '3px' }}>Nom de famille</label>
                                 <input type="text" value={nom} onChange={e => setNom(e.target.value)} required style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} />
                             </div>
                             <div>
@@ -594,7 +599,7 @@
             );
         }
 
-        // --- PAGE : MON ITINÉRAIRE (VRAI PANIER RECALCULÉ) ---
+        // --- PAGE : MON ITINÉRAIRE ---
         function ItinerairePage({ panier, onSupprimer }) {
             const total = panier.reduce((sum, item) => sum + Number(item.prix), 0);
 
