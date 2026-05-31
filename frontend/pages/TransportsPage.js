@@ -1,4 +1,24 @@
 // ── PAGE : TRANSPORTS ─────────────────────────────────────
+
+// Images par type de transport (Unsplash CDN)
+const IMAGES_TRANSPORTS = {
+    "avion": "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&h=300&fit=crop&auto=format",
+    "train": "https://images.unsplash.com/photo-1474487548417-781cb71495f3?w=600&h=300&fit=crop&auto=format",
+    "bus":   "https://images.unsplash.com/photo-1464219789935-c2d9d9aba644?w=600&h=300&fit=crop&auto=format",
+    "bateau":"https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=600&h=300&fit=crop&auto=format",
+    "ferry": "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=600&h=300&fit=crop&auto=format",
+    "default":"https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&h=300&fit=crop&auto=format"
+};
+
+function getImageTransport(type) {
+    if (!type) return IMAGES_TRANSPORTS["default"];
+    const cle = type.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    for (const [k, v] of Object.entries(IMAGES_TRANSPORTS)) {
+        if (cle.includes(k) || k.includes(cle)) return v;
+    }
+    return IMAGES_TRANSPORTS["default"];
+}
+
 function TransportsPage({ onAjouter, destinationActive }) {
     const { user } = React.useContext(AuthContext);
     const [transports, setTransports] = React.useState([]);
@@ -58,13 +78,17 @@ function TransportsPage({ onAjouter, destinationActive }) {
                         {transportsFiltres.map(t => {
                             const id = t.id;
                             const estSelectionne = selectionne === id;
-                            const typeTransport = (t.type || "avion").toUpperCase();
-                            const icone = typeTransport === "TRAIN" ? "🚅 Train" : typeTransport === "BUS" ? "🚌 Bus" : "✈️ Avion";
+                            const typeTransport = (t.type || "avion").toLowerCase();
+                            const iconeLabel = typeTransport === "train" ? "🚅 Train" : typeTransport === "bus" ? "🚌 Bus" : "✈️ Avion";
                             const labelTrajet = `${t.depart || "N/A"} → ${t.arrivee || "N/A"}`;
+                            const imgUrl = t.image || getImageTransport(t.type);
 
                             return (
                                 <div key={id} className={`destination-card ${estSelectionne ? 'destination-card--active' : ''}`} onClick={() => setSelectionne(prev => prev === id ? null : id)}>
-                                    <div className="destination-card__image"><span>{icone}</span></div>
+                                    <div className="destination-card__image">
+                                        <img src={imgUrl} alt={labelTrajet} loading="lazy" />
+                                        <span className="card-img-label">{iconeLabel}</span>
+                                    </div>
                                     <div className="destination-card__body">
                                         <h3 className="destination-card__titre" style={{ fontSize: '1rem', color: 'var(--color-primary)', marginBottom: '8px' }}>
                                             {labelTrajet}
@@ -77,7 +101,7 @@ function TransportsPage({ onAjouter, destinationActive }) {
                                         </p>
                                         <p className="destination-card__prix">{t.prix}€</p>
                                         {estSelectionne && (
-                                            <button className="destination-card__btn" onClick={(e) => { e.stopPropagation(); onAjouter({ genre: '✈️ Transport', nom: `${typeTransport} : ${labelTrajet}`, prix: t.prix, details: `Départ le ${formaterDate(t.date_depart)}`, type: 'transport', ref_id: t.id }); }}>
+                                            <button className="destination-card__btn" onClick={(e) => { e.stopPropagation(); onAjouter({ genre: '✈️ Transport', nom: `${iconeLabel} : ${labelTrajet}`, prix: t.prix, details: `Départ le ${formaterDate(t.date_depart)}`, type: 'transport', ref_id: t.id }); }}>
                                                 Choisir
                                             </button>
                                         )}

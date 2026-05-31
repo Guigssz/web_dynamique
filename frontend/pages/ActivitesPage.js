@@ -1,4 +1,36 @@
 // ── PAGE : ACTIVITÉS ──────────────────────────────────────
+
+// Images par type/thème d'activité (Unsplash CDN)
+const IMAGES_ACTIVITES = {
+    "plongee":     "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&h=300&fit=crop&auto=format",
+    "plongée":     "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&h=300&fit=crop&auto=format",
+    "surf":        "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=600&h=300&fit=crop&auto=format",
+    "randonnee":   "https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&h=300&fit=crop&auto=format",
+    "randonnée":   "https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&h=300&fit=crop&auto=format",
+    "ski":         "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=600&h=300&fit=crop&auto=format",
+    "musee":       "https://images.unsplash.com/photo-1565060169194-19fabf63012c?w=600&h=300&fit=crop&auto=format",
+    "musée":       "https://images.unsplash.com/photo-1565060169194-19fabf63012c?w=600&h=300&fit=crop&auto=format",
+    "gastronomie": "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=300&fit=crop&auto=format",
+    "cuisine":     "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=300&fit=crop&auto=format",
+    "temple":      "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&h=300&fit=crop&auto=format",
+    "spa":         "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&h=300&fit=crop&auto=format",
+    "kayak":       "https://images.unsplash.com/photo-1551524559-8af4e6624178?w=600&h=300&fit=crop&auto=format",
+    "velo":        "https://images.unsplash.com/photo-1571068316344-75bc76f77890?w=600&h=300&fit=crop&auto=format",
+    "vélo":        "https://images.unsplash.com/photo-1571068316344-75bc76f77890?w=600&h=300&fit=crop&auto=format",
+    "excursion":   "https://images.unsplash.com/photo-1500835556837-99ac94a94552?w=600&h=300&fit=crop&auto=format",
+    "visite":      "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=600&h=300&fit=crop&auto=format",
+    "default":     "https://images.unsplash.com/photo-1452421822248-d4c2b47f0c81?w=600&h=300&fit=crop&auto=format"
+};
+
+function getImageActivite(nom, type) {
+    const texte = ((nom || '') + ' ' + (type || '')).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    for (const [k, v] of Object.entries(IMAGES_ACTIVITES)) {
+        const kNorm = k.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (texte.includes(kNorm)) return v;
+    }
+    return IMAGES_ACTIVITES["default"];
+}
+
 function ActivitesPage({ onAjouter, destinationActive }) {
     const { user } = React.useContext(AuthContext);
     const [activites, setActivites] = React.useState([]);
@@ -53,11 +85,13 @@ function ActivitesPage({ onAjouter, destinationActive }) {
                             const prix = act.prix || 0;
                             const duree = act.duree || "Non spécifiée";
                             const places = act.places_restantes ?? act.capacite_max;
+                            const imgUrl = act.image || getImageActivite(act.nom, act.type);
 
                             return (
                                 <div key={id} className={`destination-card ${estSelectionne ? 'destination-card--active' : ''}`} onClick={() => setSelectionne(prev => prev === id ? null : id)}>
                                     <div className="destination-card__image">
-                                        <span>🎭 ACTIVITÉ</span>
+                                        <img src={imgUrl} alt={titre} loading="lazy" />
+                                        <span className="card-img-label">🎭 Activité</span>
                                     </div>
                                     <div className="destination-card__body">
                                         <h3 className="destination-card__titre">{titre}</h3>

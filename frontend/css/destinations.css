@@ -30,7 +30,7 @@
 }
 
 .destination-card__image {
-    height: 120px;
+    height: 150px;
     background-color: #a8c8e8;
     display: flex;
     align-items: center;
@@ -39,6 +39,35 @@
     font-weight: 700;
     font-size: 0.85rem;
     letter-spacing: 1px;
+    overflow: hidden;
+    position: relative;
+}
+
+.destination-card__image img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    transition: transform 0.4s ease;
+}
+
+.destination-card:hover .destination-card__image img {
+    transform: scale(1.07);
+}
+
+.destination-card__image .card-img-label {
+    position: relative;
+    z-index: 2;
+    background: linear-gradient(135deg, rgba(0,0,0,0.45), rgba(0,0,0,0.2));
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    backdrop-filter: blur(2px);
 }
 
 .destination-card__body {

@@ -1,4 +1,28 @@
 // ── PAGE : HÉBERGEMENTS ───────────────────────────────────
+
+// Images par type d'hébergement (Unsplash CDN)
+const IMAGES_HEBERGEMENTS = {
+    "hotel":      "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=300&fit=crop&auto=format",
+    "hôtel":      "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=300&fit=crop&auto=format",
+    "auberge":    "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&h=300&fit=crop&auto=format",
+    "hostel":     "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&h=300&fit=crop&auto=format",
+    "appartement":"https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&h=300&fit=crop&auto=format",
+    "appart":     "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&h=300&fit=crop&auto=format",
+    "villa":      "https://images.unsplash.com/photo-1613977257363-707ba9348227?w=600&h=300&fit=crop&auto=format",
+    "resort":     "https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=600&h=300&fit=crop&auto=format",
+    "bungalow":   "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=600&h=300&fit=crop&auto=format",
+    "default":    "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600&h=300&fit=crop&auto=format"
+};
+
+function getImageHebergement(type) {
+    if (!type) return IMAGES_HEBERGEMENTS["default"];
+    const cle = type.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    for (const [k, v] of Object.entries(IMAGES_HEBERGEMENTS)) {
+        if (cle.includes(k) || k.includes(cle)) return v;
+    }
+    return IMAGES_HEBERGEMENTS["default"];
+}
+
 function HebergementsPage({ onAjouter, destinationActive }) {
     const { user } = React.useContext(AuthContext);
     const [hotels, setHotels] = React.useState([]);
@@ -43,10 +67,13 @@ function HebergementsPage({ onAjouter, destinationActive }) {
                             const id = h.id;
                             const estSelectionne = selectionne === id;
                             const prix = h.prix_nuit || h.prix;
+                            const typeLabel = (h.type || 'Hôtel');
+                            const imgUrl = h.image || getImageHebergement(h.type);
                             return (
                                 <div key={id} className={`destination-card ${estSelectionne ? 'destination-card--active' : ''}`} onClick={() => setSelectionne(prev => prev === id ? null : id)}>
                                     <div className="destination-card__image">
-                                        <span>{(h.type || 'HÔTEL').toUpperCase()}</span>
+                                        <img src={imgUrl} alt={h.nom} loading="lazy" />
+                                        <span className="card-img-label">🏨 {typeLabel}</span>
                                     </div>
                                     <div className="destination-card__body">
                                         <h3 className="destination-card__titre">{h.nom}</h3>
